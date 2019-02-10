@@ -13,11 +13,6 @@ import (
 
 const FIND_ROOT = "https://deckbox.org/mtg/"
 
-type cardCount struct {
-	Set   string
-	Count int
-}
-
 func mainFindCards(cardNames []string) {
 	var notFound []string
 
