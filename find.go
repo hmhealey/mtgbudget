@@ -1,4 +1,4 @@
-package main
+package mtgtools
 
 import (
 	"fmt"
@@ -11,43 +11,15 @@ import (
 	"github.com/gocolly/colly"
 )
 
-const FIND_ROOT = "https://deckbox.org/mtg/"
+const findRoot = "https://deckbox.org/mtg/"
 
-func mainFindCards(cardNames []string) {
-	var notFound []string
-
-	for _, cardName := range cardNames {
-		sets, counts := findCardCount(cardName)
-
-		if len(counts) > 0 {
-			fmt.Printf("%s\n", cardName)
-
-			for i, count := range counts {
-				set := sets[i]
-
-				fmt.Printf("  %s: %d %s found\n", set, count, copies(count))
-			}
-		} else {
-			notFound = append(notFound, cardName)
-		}
-	}
-
-	if len(notFound) > 0 {
-		fmt.Println("=======================================")
-
-		for _, cardName := range notFound {
-			fmt.Printf("%s: No copies found\n", cardName)
-		}
-	}
-}
-
-func findCardCount(cardName string) ([]string, []int) {
+func FindCardCount(cardName string) ([]string, []int) {
 	c := colly.NewCollector()
 
 	c.SetCookies("https://deckbox.org", []*http.Cookie{
 		{
 			Name:   "auth_token",
-			Value:  DECKBOX_AUTH_TOKEN,
+			Value:  deckboxAuthToken,
 			Domain: "deckbox.org",
 		},
 	})
@@ -83,18 +55,10 @@ func findCardCount(cardName string) ([]string, []int) {
 		counts = append(counts, int(count))
 	})
 
-	err := c.Visit(fmt.Sprint(FIND_ROOT, url.QueryEscape(cardName)))
+	err := c.Visit(fmt.Sprint(findRoot, url.QueryEscape(cardName)))
 	if err != nil {
 		log.Fatalf("Failed to visit web page for %s: %v", cardName, err)
 	}
 
 	return sets, counts
-}
-
-func copies(count int) string {
-	if count == 1 {
-		return "copy"
-	} else {
-		return "copies"
-	}
 }

@@ -1,6 +1,7 @@
-package main
+package mtgtools
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/url"
@@ -10,31 +11,15 @@ import (
 	"github.com/gocolly/colly"
 )
 
-const NO_PRICE = 10000000
-const SEARCH_ROOT = "https://shop.tcgplayer.com/productcatalog/product/show?ProductType=All&IsProductNameExact=false&ProductName="
+const (
+	searchRoot = "https://shop.tcgplayer.com/productcatalog/product/show?ProductType=All&IsProductNameExact=false&ProductName="
+)
 
-func mainBudget(cardNames []string) {
-	var total int
+var (
+	ErrNoPrice = errors.New("No price available")
+)
 
-	for _, cardName := range cardNames {
-		set, price := getMarketPrice(cardName)
-
-		if set == "" {
-			log.Printf("No prices for %s", cardName)
-		}
-
-		fmt.Printf("%s (%s): %.2f\n", cardName, set, float32(price) / 100)
-
-		if price != NO_PRICE {
-			total += price
-		}
-	}
-
-	fmt.Println("=======================================")
-	fmt.Printf("Total: %.2f\n", float32(total) / 100)
-}
-
-func getMarketPrice(cardName string) (string, int) {
+func GetMarketPrice(cardName string) (string, int, error) {
 	c := colly.NewCollector()
 
 	prices := make(map[string]int)
@@ -78,23 +63,27 @@ func getMarketPrice(cardName string) (string, int) {
 			return
 		}
 
-		prices[set] = int(dollars) * 100 + int(cents)
+		prices[set] = int(dollars)*100 + int(cents)
 	})
 
-	err := c.Visit(fmt.Sprint(SEARCH_ROOT, url.QueryEscape(cardName)))
+	err := c.Visit(fmt.Sprint(searchRoot, url.QueryEscape(cardName)))
 	if err != nil {
 		log.Fatalf("Failed to visit web page for %s: %v", cardName, err)
 	}
 
-	lowPrice := NO_PRICE
+	lowPrice := 0
 	lowSet := ""
 
 	for set, price := range prices {
-		if price < lowPrice {
+		if lowSet == "" || price < lowPrice {
 			lowPrice = price
 			lowSet = set
 		}
 	}
 
-	return lowSet, lowPrice
+	if lowSet == "" {
+		return "", 0, ErrNoPrice
+	}
+
+	return lowSet, lowPrice, nil
 }

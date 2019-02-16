@@ -1,25 +1,30 @@
 package main
 
 import (
-	"io/ioutil"
+	"bufio"
+	"io"
 	"log"
 	"os"
 	"regexp"
 	"strings"
 )
 
-var IGNORED_CARDS = map[string]bool{
-	"Plains": true,
-	"Island": true,
-	"Swamp": true,
+var ignoredCards = map[string]bool{
+	"Plains":   true,
+	"Island":   true,
+	"Swamp":    true,
 	"Mountain": true,
-	"Forest": true,
+	"Forest":   true,
 }
 
-func parseCardNames(deckList string) []string {
+func readCardNames(r io.Reader) []string {
+	scanner := bufio.NewScanner(r)
+
 	var cardNames []string
 
-	for _, line := range strings.Split(deckList, "\n") {
+	for scanner.Scan() {
+		line := scanner.Text()
+
 		line = strings.TrimSpace(line)
 
 		if line == "" {
@@ -32,7 +37,7 @@ func parseCardNames(deckList string) []string {
 
 		cardName := strings.TrimSpace(line)
 
-		if _, ok := IGNORED_CARDS[cardName]; ok {
+		if _, ok := ignoredCards[cardName]; ok {
 			continue
 		}
 
@@ -48,25 +53,12 @@ func main() {
 		return
 	}
 
-	b, err := ioutil.ReadAll(os.Stdin)
-	if err != nil {
-		log.Print("Failed to read deck list from stdin")
-		return
-	}
-
-	deckList := string(b)
-	if deckList == "" {
-		log.Print("No deck list provided")
-		return
-	}
-
-	cardNames := parseCardNames(deckList)
-
 	mode := os.Args[1]
+	args := os.Args[2:]
 	switch mode {
 	case "budget":
-		mainBudget(cardNames)
+		mainBudget(args)
 	case "find":
-		mainFindCards(cardNames)
+		mainFind(args)
 	}
 }
